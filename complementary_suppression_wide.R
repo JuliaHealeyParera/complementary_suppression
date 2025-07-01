@@ -136,7 +136,7 @@ suppress <- function(df, supp_val, supp_char, supp_cols) {
 library(tidyverse)
 
 # Loading example data
-tabdata <- read_csv('CT_DAPA/burner_tabdata.csv')
+tabdata <- read_csv('data/burner_tabdata.csv')
 
 # Suppression values of choice
 cell_bound <- 5

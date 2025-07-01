@@ -29,7 +29,7 @@ For the sake of this explanation, we will be using a dummy dataset. This script 
 ```{r}
 here() # NOT NECESSARY for user
 # Reading in data 
-tabdata <- read_csv('burner_tabdata.csv')
+tabdata <- read_csv('../data/burner_tabdata.csv') #fix
 # Printing to see structure
 tabdata |>
   kbl(caption = "Initial Data") |>
