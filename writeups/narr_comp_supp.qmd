@@ -62,9 +62,10 @@ denominator_bound <- 20
 supp_char <- '*'
 # Define regex version of supp_char in case it is a special character
 regex_suppchar <- if_else(
-  supp_char %in% c('*', '.'), 
+  supp_char %in% c('*', '.'),
   paste0('\\', supp_char), # Escape slashes for literal character interpretation
-  supp_char)
+  supp_char
+)
 ```
 
 #### 2. Calculate your aggregate fields and check for suppression.
@@ -83,21 +84,25 @@ tabdata <- tabdata |>
   mutate(
     total = hispanic_count + white_count + black_count, # Total counts
     hispanic_perc = if_else(
-      # Suppression criteria: 
-      (hispanic_count < numerator_bound) | (total < denominator_bound), 
+      # Suppression criteria:
+      (hispanic_count < numerator_bound) | (total < denominator_bound),
       # If not met, suppress value:
       supp_char,
       # Else, store value as string.
-      as.character(round(hispanic_count / total, 2))), # Rounding for appearance
+      as.character(round(hispanic_count / total, 2))
+    ), # Rounding for appearance
     black_perc = if_else(
-      (black_count < numerator_bound) | (total < denominator_bound), 
-      supp_char, 
-      as.character(round(black_count / total, 2))),
+      (black_count < numerator_bound) | (total < denominator_bound),
+      supp_char,
+      as.character(round(black_count / total, 2))
+    ),
     white_perc = if_else(
       (white_count < numerator_bound) | (total < denominator_bound),
-      supp_char, 
-      as.character(round(white_count / total, 2))))
-# Current data structure and suppression: 
+      supp_char,
+      as.character(round(white_count / total, 2))
+    )
+  )
+# Current data structure and suppression:
 tabdata |>
   kbl(caption = "Initial Data") |>
   kable_classic(full_width = F, html_font = "Cambria")
@@ -108,8 +113,8 @@ tabdata |>
 These are the columns containing the counts we want to apply complementary suppression to. In the case of this example, we are suppressing `white_count`, `black_count`, and `white_count`. We already carried out suppression on our aggregate columns, so those aren't included here.
 
 ```{r}
-# Columns (COUNTS) to apply complementary suppresion to 
-supp_cols <- c('white_count', 'black_count', 'hispanic_count') 
+# Columns (COUNTS) to apply complementary suppresion to
+supp_cols <- c('white_count', 'black_count', 'hispanic_count')
 # Indices of suppression columns, for later manipulation
 suppcol_idx <- which(names(tabdata) %in% supp_cols)
 ```
@@ -122,16 +127,19 @@ First, we'll write the function to be called in the main script. This function w
 
 ```{r}
 suppress <- function(df, supp_val, supp_char, supp_cols) {
-  # First pass: 
-     # For all suppression columns (supp_cols), replace any cell value equal to 
-     # or less than suppression value (supp_val) with suppression character
+  # First pass:
+  # For all suppression columns (supp_cols), replace any cell value equal to
+  # or less than suppression value (supp_val) with suppression character
   df <- df |>
     mutate(across(
-      all_of(supp_cols), ~ if_else(
-        .x <= supp_val & .x != 0, 
-        supp_char, 
-        as.character(.x))))
-  
+      all_of(supp_cols),
+      ~ if_else(
+        .x <= supp_val & .x != 0,
+        supp_char,
+        as.character(.x)
+      )
+    ))
+
   # Call recursive function to perform complementary suppression
   df <- complementary(df)
   return(df)
@@ -159,7 +167,7 @@ complementary <- function(df) {
       df <- fix_all_cols(df, cols_to_fix)
     }
   }
-  
+
   # Recurse with edited dataframe
   complementary(df)
 }
@@ -171,29 +179,29 @@ Let's define all of our helper functions, starting with `checker_df()`. This fun
 # Forms burner dataframe with columns verifying value suppression
 checker_df <- function(df) {
   checker <- df |>
-    # If a value has been suppressed, replace it with 1. 
+    # If a value has been suppressed, replace it with 1.
     # If a value has not been suppressed, replace it with 0.
-    mutate_at(supp_cols, ~ as.numeric(str_detect(., regex_suppchar))) 
-  
-  return (checker)
+    mutate_at(supp_cols, ~ as.numeric(str_detect(., regex_suppchar)))
+
+  return(checker)
 }
 
 check_rows <- function(checker) {
   row_checker <- checker |>
     # How many cells in a given row have been suppressed?
-    mutate(num_supp = rowSums(checker[,suppcol_idx])) #All rows, only suppression columns
+    mutate(num_supp = rowSums(checker[, suppcol_idx])) #All rows, only suppression columns
   # What are the indices of the rows that need to be fixed (have only 1 value suppressed)?
   fix_rows = which(row_checker$num_supp == 1)
-  return (fix_rows) 
+  return(fix_rows)
 }
 
 check_cols <- function(checker) {
   # How many cells in a given column have been suppressed?
-  colSums(checker[,which(names(checker) %in% supp_cols)])
-  
+  colSums(checker[, which(names(checker) %in% supp_cols)])
+
   # What are the indices of the columns that need to be fixed (have only 1 value suppressed)?
   fix_cols = which(colSums(checker[which(names(checker) %in% supp_cols)]) == 1)
-  return (fix_cols)
+  return(fix_cols)
 }
 ```
 
@@ -204,13 +212,13 @@ If `check_rows()` or `check_cols()` returns a list of column indices that need t
 fix_all_rows <- function(df, rows_to_fix) {
   # Could be consolidated with map() functions, but left as-is for readability
   for (i in rows_to_fix) {
-      df <- fix_row(df, i)
-    }
+    df <- fix_row(df, i)
+  }
   return(df)
 }
 
 # Iterate through all columns to be fixed
-fix_all_cols <- function(df, cols_to_fix) { 
+fix_all_cols <- function(df, cols_to_fix) {
   # Could be consolidated with map() functions, but left as-is for readability
   for (i in cols_to_fix) {
     df <- fix_col(df, i)
@@ -220,41 +228,43 @@ fix_all_cols <- function(df, cols_to_fix) {
 
 fix_row <- function(df, i) {
   # Save row to be fixed as vector, remove suppressed values, convert to numeric
-  row <- df[i, suppcol_idx] 
+  row <- df[i, suppcol_idx]
   num_row <- as.numeric(row[!(row %in% c(supp_char, "0"))])
-  
+
   # Randomly choose the index of one cell equal to the minimum row value to suppress
   # Subtract 1 to switch from 1-based indexing to 0-based indexing for data subsetting
   poss_idx <- which(row == min(num_row))
   if (length(poss_idx) != 1) {
     idx_to_supp <- sample(poss_idx, size = 1) - 1
   } else {
-    idx_to_supp <- poss_idx - 1 }
+    idx_to_supp <- poss_idx - 1
+  }
 
   # Suppress selected cell with suppression character
-  # Second argument enables proper indexing into larger dataframe: 
-      #idx_to_supp = index of column within relevant suppression columns
-      #suppcol_idx[1] = starter index of first relevant suppression column
+  # Second argument enables proper indexing into larger dataframe:
+  #idx_to_supp = index of column within relevant suppression columns
+  #suppcol_idx[1] = starter index of first relevant suppression column
   df[i, idx_to_supp + suppcol_idx[1]] <- supp_char
   return(df)
 }
 
 fix_col <- function(df, i) {
   # Save column to be fixed as vector, remove suppressed values, convert to numeric
-  col <- df[,i]
+  col <- df[, i]
   num_col <- as.numeric(col[!(col %in% c(supp_char, "0"))])
-  
+
   # Randomly choose the index of one cell equal to the minimum column value to suppress
   poss_idx <- which(col == min(num_col))
   if (length(poss_idx) != 1) {
     idx_to_supp <- sample(poss_idx, size = 1)
   } else {
-    idx_to_supp <- poss_idx}
-  
-  # Suppress selected cell with suppression character 
-  # Second argument enables proper indexing into larger dataframe: 
-      #i = column being fixed
-      #idx_to_supp = row of column to be suppressed
+    idx_to_supp <- poss_idx
+  }
+
+  # Suppress selected cell with suppression character
+  # Second argument enables proper indexing into larger dataframe:
+  #i = column being fixed
+  #idx_to_supp = row of column to be suppressed
   df[idx_to_supp, i] <- supp_char
   return(df)
 }
