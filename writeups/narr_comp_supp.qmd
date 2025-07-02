@@ -19,17 +19,31 @@ If you would like to directly access the fully-commented R script that forms the
 In order to perform any data manipulation, we need to load our relevant libraries.
 
 ```{r}
+#| label: libraries
+
 library(tidyverse) # Basic data manipulation
-library(here) # NOT NECESSARY for user, needed for loading data into markdown
-library(kableExtra)  # For pretty printing
+library(kableExtra) # For pretty printing
+library(fs) # For easy file pathing
+
+here::i_am("writeups/narr_comp_supp.qmd")
+library(here)
 ```
 
 For the sake of this explanation, we will be using a dummy dataset. This script assumes that the user's data is in wide format. If that is not the case, you can use `pivot_wider` to easily make the necessary change, as detailed in the code.
 
 ```{r}
-here() # NOT NECESSARY for user
-# Reading in data 
-tabdata <- read_csv('../data/burner_tabdata.csv') #fix
+#| label: data
+
+# Reading in data
+tabdata <-
+  read_csv(
+    fs::path(
+      here(),
+      "data",
+      "burner_tabdata.csv"
+    )
+  )
+
 # Printing to see structure
 tabdata |>
   kbl(caption = "Initial Data") |>
