@@ -1,0 +1,32 @@
+author: 
+  - name: Julia Healey-Parera
+    email: Julia.Healey-Parera@ct.gov
+  - name: Alexander J. Senetcky
+    orcid: 0009-0009-3730-5397
+    email: me@asenetcky.dev
+    degrees: 
+      - BS
+      - MPH
+    url: https://asenetcky.dev
+
+title-block-banner: "black"
+number-sections: true
+
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-title: "Contents"
+
+    other-links:
+          - text: Source Code
+            href: https://github.com/JuliaHealeyParera/complementary_suppression
+            icon: "github"
+          - text: github.com/JuliaHealeyParera
+            href: https://github.com/JuliaHealeyParera
+            icon: "github"
+
+
+editor: source
+
+theme: lux
