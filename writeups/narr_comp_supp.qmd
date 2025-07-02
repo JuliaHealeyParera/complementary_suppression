@@ -1,12 +1,12 @@
 ---
+title: Complementary Data Suppression in R
 output: html_document
 message: false
 warning: false
 ---
 
-# *Complementary Data Suppression in R*
 
-#### *Code, Explanation, and Example Implementation*
+## Code, Explanation, and Example Implementation
 
 Complementary data suppression is a technique used to protect data privacy in datasets that include small cell counts. For a full explanation of CDS, see the Connecticut State Department of Education's document on methodologies and rules: [Data Suppression Guidelines.](https://edsight.ct.gov/relatedreports/BDCRE%20Data%20Suppression%20Rules.pdf)
 
@@ -14,7 +14,7 @@ Using CSDE's example cutoff values and a dummy dataset, this document walks its 
 
 If you would like to directly access the fully-commented R script that forms the basis for this narrative explanation, *click here.*
 
-#### 1. Load your libraries, prepare your data, and define your values.
+## Load your libraries, prepare your data, and define your values
 
 In order to perform any data manipulation, we need to load our relevant libraries.
 
@@ -60,6 +60,7 @@ denominator_bound <- 20
 
 # Suppression character to be used
 supp_char <- '*'
+
 # Define regex version of supp_char in case it is a special character
 regex_suppchar <- if_else(
   supp_char %in% c('*', '.'),
@@ -68,7 +69,7 @@ regex_suppchar <- if_else(
 )
 ```
 
-#### 2. Calculate your aggregate fields and check for suppression.
+## Calculate your aggregate fields and check for suppression
 
 Is your data in long format? If so, now is the time to pivot to wide. Use `pivot_wider`! Because our data is already in wide format, we won't use this. If you need to, uncomment this line of code and fill in the blanks. Check out the [documentation and examples](https://tidyr.tidyverse.org/reference/pivot_wider.html) if this is new to you.
 
@@ -80,7 +81,8 @@ Next, we will calculate our ratios and aggregate fields. For this example, we ar
 
 ```{r}
 # Carry out suppression of percentages and aggregates before individual numbers
-tabdata <- tabdata |>
+tabdata <-
+  tabdata |>
   mutate(
     total = hispanic_count + white_count + black_count, # Total counts
     hispanic_perc = if_else(
@@ -102,13 +104,14 @@ tabdata <- tabdata |>
       as.character(round(white_count / total, 2))
     )
   )
+
 # Current data structure and suppression:
 tabdata |>
   kbl(caption = "Initial Data") |>
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-#### 3. Define your suppression columns.
+## Define your suppression columns
 
 These are the columns containing the counts we want to apply complementary suppression to. In the case of this example, we are suppressing `white_count`, `black_count`, and `white_count`. We already carried out suppression on our aggregate columns, so those aren't included here.
 
@@ -119,7 +122,7 @@ supp_cols <- c('white_count', 'black_count', 'hispanic_count')
 suppcol_idx <- which(names(tabdata) %in% supp_cols)
 ```
 
-#### 4. Write your suppression algorithm. 
+## Write your suppression algorithm
 
 Now we'll write our functions for suppression. If implementation is not of concern to you, copy the code below and skip to step 5.
 
@@ -131,14 +134,18 @@ suppress <- function(df, supp_val, supp_char, supp_cols) {
   # For all suppression columns (supp_cols), replace any cell value equal to
   # or less than suppression value (supp_val) with suppression character
   df <- df |>
-    mutate(across(
-      all_of(supp_cols),
-      ~ if_else(
-        .x <= supp_val & .x != 0,
-        supp_char,
-        as.character(.x)
+    mutate(
+      across(
+        all_of(supp_cols),
+        \(col) {
+          if_else(
+            col <= supp_val & col != 0,
+            supp_char,
+            as.character(col)
+          )
+        }
       )
-    ))
+    )
 
   # Call recursive function to perform complementary suppression
   df <- complementary(df)
@@ -156,6 +163,7 @@ complementary <- function(df) {
   # Base case: check_rows() returns NULL AND check_cols() returns NULL
   rows_to_fix <- check_rows(checker)
   cols_to_fix <- check_cols(checker)
+
   if (length(rows_to_fix) == 0) {
     if (length(cols_to_fix) == 0) {
       return(df) # Base case
@@ -270,7 +278,7 @@ fix_col <- function(df, i) {
 }
 ```
 
-#### 5. Call complementary suppression function. 
+## Call complementary suppression function
 
 Let's use our call stack! Since all of our values are defined from step 1, we can plug-and-chug with our new functions.
 
@@ -284,6 +292,6 @@ suppressed_tabdata |>
   kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-#### Notes:
+## Notes
 
 This code could be easily optimized and made concise. Excessive helper functions were used to improve readability and ease of functionality. Inspiration for implementation taken from open-source [dar-tool](https://pypi.org/project/dar-tool/), a Python tool performing complementary suppression.
